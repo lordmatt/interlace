@@ -1,5 +1,7 @@
 <?php
 /**
+ * (c)Copyright 2008, 2013 Lord Matt
+ * 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
@@ -22,11 +24,23 @@ You may use and distribute this freely as long as you leave the copyrights intac
 // the array :: Interlace_markup ::: this allows new markup patterns to be used
 // fully Processed item :: PostInterlace ::: all work is compleate
 
-// a plugin can subscribe to the plugin to add mark-up or get markup patterns (advanced).
-// To see everything that will be used - use this spy event: Interlace_allmarkup
-// With a little cache control any other plugin could use the markup defined by this and all supporting plugins.
-
-/*v1.1.3 As 1.1.2 was nicely stable I added some new features     	   added: (\n\n|\r\r|\n\r\n\r)  (as opposed to /[\n\r][\n\r]/ or (\n|\r|\n\r)(\n|\r|\n\r)) 	   as a pattern two line feed to make a <br> which is inline with wikimedia markup it should	   also work with or without other <br> systems so that ALL double spaces convert but <br>'d	   spaces do not.  Add a space to the line to force the <br> not to happen	   	   added: [br] becomes <br>	   	   added: rel="tag" to the [[word]] wiki link backwards compatability code.	   	   edit: new comments	   	   added: altered the technirati tag to be lordmatt tag for personal use	   must remember to change back if I release this version
+/* a plugin can subscribe to the plugin to add mark-up or get markup patterns (advanced).
+* To see everything that will be used - use this spy event: Interlace_allmarkup
+* With a little cache control any other plugin could use the markup defined by this and all supporting plugins.
+*/
+/*
+v1.2.0 aka Blobface
+ - Reduce and reuse
+v1.1.3 As 1.1.2 was nicely stable I added some new features
+added: (\n\n|\r\r|\n\r\n\r)  (as opposed to /[\n\r][\n\r]/ or (\n|\r|\n\r)(\n|\r|\n\r)) 	   
+as a pattern two line feed to make a <br> which is inline with wikimedia markup it should	   
+also work with or without other <br> systems so that ALL double spaces convert but <br>'d	   
+spaces do not.  Add a space to the line to force the <br> not to happen	   	   
+added: [br] becomes <br>	   	   
+added: rel="tag" to the [[word]] wiki link backwards compatability code.	   	   
+edit: new comments	   	   
+added: altered the technirati tag to be lordmatt tag for personal use	   
+must remember to change back if I release this version
 v1.1.2 Fixed: Comment System should work
        edit:  altered my own history to make it clearer (added the word "php")
 v1.1.1 Restored the [[my:x]] interwiki tag for compatability
@@ -80,14 +94,14 @@ class NP_interlace extends NucleusPlugin {
         function getName() { return 'Inter-Lace'; }
         function getAuthor() { return 'Lord Matt (based on some code by Auz)'; }
         function getURL()    { return 'http://lordmatt.co.uk'; }
-        function getVersion() { return '1.1.2 Jimbob'; }
+        function getVersion() { return '1.2.0 Blobface'; }
         function getDescription() {
-                return 'Inter-Lace - the interwiki, mark-up helping, autotagging plugin allows some BB ([b], [u], [i], [url]) and some wiki mark-up (--strike--, ==headings==) as well as allowing interwiki links [[WP:Link]] (Wikipedia) and inline tags [[Tag:Link]] ...auto linking urls.  ';
+                return 'Inter-Lace - Mark up framework for Nucleus';
         }
 
-  function getEventList() {
-    return array('PreItem', 'PreComment');
-  }
+	function getEventList() {
+		return array('PreItem', 'PreComment');
+	}
 
 
 	function supportsFeature($what) {
@@ -104,56 +118,46 @@ class NP_interlace extends NucleusPlugin {
 	  }
   
   
-  function event_PreComment($data){
-  $fred["item"] = &$data['comment']['body'];
-  $this->event_PreItem(&$fred);
-  }
+  	function event_PreComment($data){
+  		$fred["item"] = &$data['comment']['body'];
+  		$this->event_PreItem(&$fred);
+  	}
   
-  
-  
-  function event_PreItem($data) {
-    $this->currentItem = &$data["item"];
+ 	function event_PreItem($data) {
+ 		$this->currentItem = &$data["item"];
     
 		global $manager;
 		$manager->notify('PreInterlace', &$this->currentItem);
-    
-    
 		//Lots of help:
 		// http://uk.php.net/preg_replace
 		// http://weblogtoolscollection.com/regex/regex.php
-		
-		
 		// INTERWIKI
 		// mark the place where the unique text goes as "\\1"
-		//the "add" allows an extra attribute to be added to the A tag
+		// the "add" allows an extra attribute to be added to the A tag
 		// In many cases this means turning links into blog tags.
-		
 		//The my is here for backwards compatability but shall change in the future.
-		
 		//It would be nice to use an interwiki page or file at some stage
 		$interwiki = array(
-		array("interwiki" => "Wp", "url" => "http://en.wikipedia.org/wiki/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "LordMatt", "url" => "http://www.lordmatt.co.uk/wiki/index.php/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "my", "url" => "http://www.lordmatt.co.uk/wiki/index.php/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "Google", "url" => "http://www.google.co.uk/search?q=\\1", "add" => " rel='search' "),
-		array("interwiki" => "G", "url" => "http://www.google.co.uk/search?q=\\1", "add" => " rel='search' "),
-		array("interwiki" => "CheatsWiki", "url" => "http://www.cheatswiki.com/index.php/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "cPanelWiki", "url" => "http://cpanelwiki.org/index.php/\\1",  "add" => " rel='tag' "),
-		array("interwiki" => "Dictionary", "url" => "http://www.dict.org/bin/Dict?Database=*&Form=Dict1&Strategy=*&Query=\\1", "add" => " rel='search' "),
-		array("interwiki" => "IMDbName", "url" => "http://www.imdb.com/name/nm\\1", "add" => " "),
-		array("interwiki" => "IMDbTitle", "url" => "http://www.imdb.com/title/tt\\1", "add" => " "),
-		array("interwiki" => "MarvelDatabase", "url" => "http://www.marveldatabase.com/wiki/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "Marvel", "url" => "http://www.marveldatabase.com/wiki/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "MeatBall", "url" => "http://www.usemod.com/cgi-bin/mb.pl?\\1", "add" => " rel='tag' "),
-		array("interwiki" => "MediaWiki", "url" => "http://www.mediawiki.org/wiki/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "MoinMoin", "url" => "http://moinmoin.wikiwikiweb.de/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "Wiktionary", "url" => "http://en.wiktionary.org/wiki/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "ZZZ", "url" => "http://wiki.zzz.ee/index.php/\\1", "add" => " rel='tag' "),
-		array("interwiki" => "Technorati", "url" => "http://www.technorati.com/search/\\1", "add" => " rel='search' "),
-		//array("interwiki" => "Tag", "url" => "http://www.technorati.com/tags/\\1", "add" => " rel='tag' ")
-		
-		//Lord Matt's tag version		
-		array("interwiki" => "Tag", "url" => "http://lordmatt.co.uk/fact/\\1", "add" => " rel='tag' ")
+			array("interwiki" => "Wp", "url" => "http://en.wikipedia.org/wiki/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "LordMatt", "url" => "http://www.lordmatt.co.uk/wiki/index.php/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "my", "url" => "http://www.lordmatt.co.uk/wiki/index.php/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "Google", "url" => "http://www.google.co.uk/search?q=\\1", "add" => " rel='search' "),
+			array("interwiki" => "G", "url" => "http://www.google.co.uk/search?q=\\1", "add" => " rel='search' "),
+			array("interwiki" => "CheatsWiki", "url" => "http://www.cheatswiki.com/index.php/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "cPanelWiki", "url" => "http://cpanelwiki.org/index.php/\\1",  "add" => " rel='tag' "),
+			array("interwiki" => "Dictionary", "url" => "http://www.dict.org/bin/Dict?Database=*&Form=Dict1&Strategy=*&Query=\\1", "add" => " rel='search' "),
+			array("interwiki" => "IMDbName", "url" => "http://www.imdb.com/name/nm\\1", "add" => " "),
+			array("interwiki" => "IMDbTitle", "url" => "http://www.imdb.com/title/tt\\1", "add" => " "),
+			array("interwiki" => "MarvelDatabase", "url" => "http://www.marveldatabase.com/wiki/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "Marvel", "url" => "http://www.marveldatabase.com/wiki/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "MeatBall", "url" => "http://www.usemod.com/cgi-bin/mb.pl?\\1", "add" => " rel='tag' "),
+			array("interwiki" => "MediaWiki", "url" => "http://www.mediawiki.org/wiki/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "MoinMoin", "url" => "http://moinmoin.wikiwikiweb.de/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "Wiktionary", "url" => "http://en.wiktionary.org/wiki/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "ZZZ", "url" => "http://wiki.zzz.ee/index.php/\\1", "add" => " rel='tag' "),
+			array("interwiki" => "Technorati", "url" => "http://www.technorati.com/search/\\1", "add" => " rel='search' "),
+			array("interwiki" => "Tag", "url" => "http://www.technorati.com/tags/\\1", "add" => " rel='tag' ")		
+			array("interwiki" => "LM", "url" => "http://lordmatt.co.uk/fact/\\1", "add" => " rel='tag' ")
 		);
 		
 		
@@ -187,20 +191,21 @@ class NP_interlace extends NucleusPlugin {
 		// "/(\\S+@\\S+\\.\\w+)/", "<a href=\"mailto:\\1\">\\1</a>"
 		
 		$manager->notify('Interlace_markup', &$markup);
-		
-		
-		
 		$manager->notify('Interlace_allmarkup', array('markup' => $markup, 'interwiki' => $this->blog));
 		
+		/** 
+		 * Processes the markup
+		 */ 
 		foreach ($markup as $pp) {
 			$pattern = $pp["pattern"];
 			$target = $pp["target"];
-			//echo ' PATTERN: '.$pattern.'<br />'.' target: '.$target.'<br /><br />';
-				$this->currentItem->body = preg_replace( $pattern, $target, $this->currentItem->body );
-				$this->currentItem->more = preg_replace( $pattern, $target, $this->currentItem->more );
+			$this->currentItem->body = preg_replace( $pattern, $target, $this->currentItem->body );
+			$this->currentItem->more = preg_replace( $pattern, $target, $this->currentItem->more );
 		}
-    
-    
+
+		/**
+		 * Process the InterWiki
+		 */ 
 		foreach ($interwiki as $aa => $bb) {
 		$interwiki = $bb["interwiki"];
 		$url = $bb["url"];
@@ -218,9 +223,7 @@ class NP_interlace extends NucleusPlugin {
 	$manager->notify('PostInterlace', &$this->currentItem);
     }
 
-// stip multi-white space out: $sample = preg_replace('/\s\s+/', ' ', $sample);
-// $body = preg_replace('/\s(\w+:\/\/)(\S+)/', ' <a href="\\1\\2" target="_blank">\\1\\2</a>', $body);
-// $body = preg_replace('/\s(www\.)(\S+)/', ' <a href="http://\\1\\2" target="_blank">\\1\\2</a>', $body);
+
 }
 
 
@@ -229,9 +232,6 @@ class NP_interlace extends NucleusPlugin {
 This last block of commetns is to show where the source came from.
 
 It is the original WikiLink plugin in totality so as not to give less credit (or access) than might be desired.
-
-
-
 
 
 <?php
@@ -275,10 +275,6 @@ class NP_WikiLink extends NucleusPlugin {
   }
 }
 ?>
-
-
-
-
 
 
 That's all folks
