@@ -93,7 +93,7 @@ class NP_interlace extends NucleusPlugin {
  
         function getName() { return 'Inter-Lace'; }
         function getAuthor() { return 'Lord Matt (based on some code by Auz)'; }
-        function getURL()    { return 'http://lordmatt.co.uk'; }
+        function getURL()    { return 'https://github.com/lordmatt/interlace'; }
         function getVersion() { return '1.2.0 Blobface'; }
         function getDescription() {
                 return 'Inter-Lace - Mark up framework for Nucleus';
